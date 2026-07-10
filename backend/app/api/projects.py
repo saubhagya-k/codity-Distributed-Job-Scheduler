@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.database import get_db
-from app.models import Project, User
+from app.models import Project, User,Organization
 from app.schemas import ProjectCreate, ProjectUpdate, ProjectResponse
 from app.core.dependencies import get_current_user
 from uuid import uuid4
@@ -23,6 +23,30 @@ async def create_project(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    # Find the user's organization
+    result = await db.execute(select(Organization).where(Organization.owner_id == current_user.id))
+    org = result.scalar_one_or_none()
+    if not org:
+        # Should not happen because we create one on registration, but just in case
+        org = Organization(
+            id=str(uuid4()),
+            name=f"{current_user.full_name}'s Org",
+            owner_id=current_user.id
+        )
+        db.add(org)
+        await db.flush()
+
+    new_project = Project(
+        id=str(uuid4()),
+        name=project_data.name,
+        description=project_data.description,
+        org_id=org.id,
+        created_by=current_user.id
+    )
+    db.add(new_project)
+    await db.commit()
+    await db.refresh(new_project)
+    return new_project
     # For simplicity, assign to the user's default organization (we'll add org later)
     # We'll set org_id to None for now; we'll refine in Step 4.
     # Temporary: create an organization if none exists, or just allow null.

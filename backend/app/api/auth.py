@@ -27,8 +27,19 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     )
     db.add(new_user)
     await db.commit()
+    org = Organization(
+        id=str(uuid4()),
+        name=f"{user_data.full_name}'s Org",
+        owner_id=new_user.id
+    )
+    db.add(org)
+    await db.commit()
     await db.refresh(new_user)
     return new_user
+   
+   
+
+
 
 @router.post("/login", response_model=Token)
 async def login(login_data: UserLogin, db: AsyncSession = Depends(get_db)):
