@@ -179,9 +179,9 @@ class JobLog(Base):
 
     id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
     job_id = Column(UUID(as_uuid=False), ForeignKey("jobs.id"), nullable=False)
-    level = Column(String(20), nullable=False)  # info, warning, error, debug
+    level = Column(String(20), nullable=False)
     message = Column(Text, nullable=False)
-    metadata = Column(JSON, default={})
+    meta_data = Column(JSON, default={})   # <-- changed from 'metadata'
     created_at = Column(DateTime, server_default=func.now())
 
     job = relationship("Job", back_populates="logs")
