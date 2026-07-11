@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional
+
+from typing import Optional, List, Any, Union
 from datetime import datetime
 from uuid import UUID
 
@@ -52,6 +53,7 @@ class ProjectResponse(BaseModel):
 class QueueCreate(BaseModel):
     name: str
     description: Optional[str] = None
+    project_id: UUID 
     priority: int = 0
     concurrency_limit: int = 5
     max_retries: int = 3
@@ -81,3 +83,54 @@ class QueueResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+
+
+class JobCreate(BaseModel):
+    name: str
+    queue_id: UUID
+    target: str                     # URL or function reference
+    payload: Optional[dict] = {}
+    job_type: str = "immediate"     # immediate, delayed, scheduled, cron, batch
+    scheduled_at: Optional[datetime] = None
+    delay_seconds: Optional[int] = None
+    cron_expression: Optional[str] = None
+    max_retries: Optional[int] = None
+    retry_strategy: Optional[str] = None  # fixed, linear, exponential
+    retry_config: Optional[dict] = {}
+    idempotency_key: Optional[str] = None
+
+    # For batch jobs
+    batch_count: Optional[int] = 1
+
+class JobResponse(BaseModel):
+    id: UUID
+    name: str
+    queue_id: UUID
+    job_type: str
+    status: str
+    target: str
+    payload: dict
+    scheduled_at: Optional[datetime]
+    retry_count: int
+    max_retries: int
+    retry_strategy: str
+    retry_config: dict
+    claimed_by: Optional[UUID]
+    claimed_at: Optional[datetime]
+    started_at: Optional[datetime]
+    completed_at: Optional[datetime]
+    error_message: Optional[str]
+    idempotency_key: Optional[str]
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class JobListResponse(BaseModel):
+    items: List[JobResponse]
+    total: int
+    page: int
+    limit: int

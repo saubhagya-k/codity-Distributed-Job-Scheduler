@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.database import get_db
-from app.models import User
+from app.models import User, Organization
 from app.schemas import UserCreate, UserLogin, UserResponse, Token
 from app.core.security import verify_password, get_password_hash, create_access_token
 from uuid import uuid4
@@ -26,20 +26,23 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
         role="member"
     )
     db.add(new_user)
-    await db.commit()
+    # Flush to get the user ID without committing
+    await db.flush()
+    
+    # Create organization
     org = Organization(
         id=str(uuid4()),
         name=f"{user_data.full_name}'s Org",
         owner_id=new_user.id
     )
     db.add(org)
+    
+    # Commit both
     await db.commit()
+    
+    # Refresh the user to get all fields
     await db.refresh(new_user)
     return new_user
-   
-   
-
-
 
 @router.post("/login", response_model=Token)
 async def login(login_data: UserLogin, db: AsyncSession = Depends(get_db)):
